@@ -61,11 +61,18 @@ class ProcessDefinition {
                 })
                 .reduce((acc, cur) => { acc[cur.id] = cur; return acc; }, {}) : [];
 
+        this.parallelGateways = process['bpmn2:parallelGateway'] ?
+        process['bpmn2:parallelGateway']
+            .map(gw => {
+                return { id: gw.$.id, incomings: gw['bpmn2:incoming'], outgoings: gw['bpmn2:outgoing'] };
+            })
+            .reduce((acc, cur) => { acc[cur.id] = cur; return acc; }, {}) : [];
+
         const notSupportedElements = _.difference(
             _.keys(process),
             [
                 '$', 'bpmn2:documentation', 'bpmn2:startEvent', 'bpmn2:endEvent', 'bpmn2:sequenceFlow', 'bpmn2:serviceTask',
-                'bpmn2:exclusiveGateway'
+                'bpmn2:exclusiveGateway', 'bpmn2:parallelGateway'
             ]);
         if (notSupportedElements.length != 0) {
             throw new Error(`elements not supported: ${notSupportedElements}`);
@@ -92,7 +99,8 @@ class ProcessDefinition {
             endEvents = this.endEvents,
             sequenceFlows = this.sequenceFlows,
             serviceTasks = this.serviceTasks,
-            exclusiveGateways = this.exclusiveGateways;
+            exclusiveGateways = this.exclusiveGateways,
+            parallelGateways = this.parallelGateways;
 
         if (taskId && taskId in this.taskExecuted) {
             throw new Error(`circular flow found, task(${taskId}) is already executed!`);
@@ -103,11 +111,30 @@ class ProcessDefinition {
 
         if (taskId in exclusiveGateways) {
             return this._buildExecutionFlowForExclusiveGateway(result, states, exclusiveGateways[taskId]);
+        } else if (taskId in parallelGateways) {
+            return this._buildExecutionFlowForParallelGateways(result, states, parallelGateways[taskId]);
         } else if (taskId in serviceTasks) {
             return this._buildExecutionFlowForServiceTask(result, states, serviceTasks[taskId]);
         } else if (taskId in endEvents) {
             return result;
         }
+    }
+
+    _buildExecutionFlowForParallelGateways(result, state, task) {
+        const self = this, sequenceFlows = this.sequenceFlows;
+        task.outgoings.forEach(flowId => {
+            if (!(flowId in sequenceFlows)) {
+                throw new Error(`flow not found: ${flowId}`);
+            }
+        });
+        return result.then(states => {
+            console.log('triggerring parallel tasks ', task.id)
+            return Promise
+                .all(task.outgoings
+                    .map(taskId => sequenceFlows[taskId].targetRef)
+                    .map(taskId => self._buildExecutionFlow(result, states, taskId)))
+                .then(() => states);
+        });
     }
 
     _buildExecutionFlowForExclusiveGateway(result, states, task) {
@@ -138,25 +165,44 @@ class ProcessDefinition {
             throw new Error(`function not found: ${task.implementation}`);
         }
 
-        const self = this, sequenceFlows = this.sequenceFlows;
+        const self = this, sequenceFlows = this.sequenceFlows, parallelGateways = this.parallelGateways;
         let taskFunc = this.funcs[task.implementation];
-        result = result.then(states => {
+        return result.then(states => {
             try {
                 let taskResult = taskFunc(states);
                 if (!(taskResult instanceof Promise)) {
                     throw new Error(`error found when call task ${task.name}(${task.id}): result of the function must be a Promise object`);
                 }
                 return taskResult.then(() => {
-                    console.log(`states after task ${task.name}(${task.id}): `, states);
+                    console.log(`states after task ${task.name}(${task.id}): ${JSON.stringify(states)}`);
                     return states;
                 });
             } catch (err) {
                 throw new Error(`error found when call task ${task.name}(${task.id}): ${err.message}`);
             }
+        }).then(states => {
+            let nextTaskId = sequenceFlows[task.outgoing].targetRef;
+            console.log('trigger next task in serviceTask, nextTaskId ', nextTaskId)
+            if (nextTaskId in parallelGateways && parallelGateways[nextTaskId].incomings.length > 1) {
+                if (!(nextTaskId in states._internals.parallelGateways)) {
+                    states._internals.parallelGateways[nextTaskId] = 0;
+                }
+                states._internals.parallelGateways[nextTaskId] += 1;
+                const parallelGatewayFinished = states._internals.parallelGateways[nextTaskId] === parallelGateways[nextTaskId].incomings.length;
+                if (parallelGatewayFinished) {
+                    const taskIdAfterGateway = sequenceFlows[getOne(parallelGateways[nextTaskId].outgoings)].targetRef;
+                    const progress = `${states._internals.parallelGateways[nextTaskId]} / ${parallelGateways[nextTaskId].incomings.length}`;
+                    console.log(`parallel gateway ${nextTaskId} finished (${progress}), triggerring next task ${taskIdAfterGateway}`);
+                    return self._buildExecutionFlow(result, states, taskIdAfterGateway);
+                } else {
+                    const progress = `${states._internals.parallelGateways[nextTaskId]} / ${parallelGateways[nextTaskId].incomings.length}`;
+                    console.log(`parallel gateway ${nextTaskId} not finished yet (${progress}), will not trigger next task`);
+                    return states;
+                }
+            } else {
+                return self._buildExecutionFlow(result, states, nextTaskId);
+            }
         });
-
-        let nextTaskId = sequenceFlows[task.outgoing].targetRef;
-        return this._buildExecutionFlow(result, states, nextTaskId);
     }
 }
 
@@ -200,9 +246,17 @@ class ProcessRun {
 }
 
 
+class ProcessRunStates {
+
+    constructor() {
+        this._internals = { parallelGateways: {} };
+    }
+
+}
+
 
 module.exports = {
     ProcessDefinition: ProcessDefinition,
     ProcessRun: ProcessRun,
-    ProcessRunStates: Object
+    ProcessRunStates: ProcessRunStates
 }
