@@ -41,6 +41,7 @@ describe('bpm', () => {
         });
         const states = new ProcessRunStates();
         const result = await pd.run(states)
+            .start()
             .then((states) => {
                 return states.result;
             })
