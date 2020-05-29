@@ -81,7 +81,7 @@ class ProcessDefinition {
 
     static async from(xml, funcs) {
         const processDef = await parser.parseStringPromise(xml);
-        console.log(JSON.stringify(processDef))
+        // console.log(JSON.stringify(processDef))
         return new ProcessDefinition(processDef, funcs);
     }
 
@@ -128,7 +128,7 @@ class ProcessDefinition {
             }
         });
         return result.then(states => {
-            console.log('triggerring parallel tasks ', task.id)
+            console.log(`trigger parallel tasks: ${task.id}`)
             return Promise
                 .all(task.outgoings
                     .map(taskId => sequenceFlows[taskId].targetRef)
@@ -148,7 +148,7 @@ class ProcessDefinition {
             let nextFlowId = _.find(task.outgoings,
                 flowId => {
                     const conditionResult = self.expressionEvaluator.evaluate(states, sequenceFlows[flowId].condition);
-                    console.log(`execute condition '${sequenceFlows[flowId].condition}' under context ${JSON.stringify(states)}, got ${conditionResult}`);
+                    console.log(`execute condition '${sequenceFlows[flowId].condition}' under context ${states.json()}, got ${conditionResult}`);
                     return conditionResult;
                 });
             if (!nextFlowId) {
@@ -174,7 +174,7 @@ class ProcessDefinition {
                     throw new Error(`error found when call task ${task.name}(${task.id}): result of the function must be a Promise object`);
                 }
                 return taskResult.then(() => {
-                    console.log(`states after task ${task.name}(${task.id}): ${JSON.stringify(states)}`);
+                    console.log(`states after task ${task.name}(${task.id}): ${states.json()}`);
                     return states;
                 });
             } catch (err) {
@@ -182,7 +182,7 @@ class ProcessDefinition {
             }
         }).then(states => {
             let nextTaskId = sequenceFlows[task.outgoing].targetRef;
-            console.log('trigger next task in serviceTask, nextTaskId ', nextTaskId)
+            console.log(`trigger next task in serviceTask: ${nextTaskId}`)
             if (nextTaskId in parallelGateways && parallelGateways[nextTaskId].incomings.length > 1) {
                 if (!(nextTaskId in states._internals.parallelGateways)) {
                     states._internals.parallelGateways[nextTaskId] = 0;
@@ -192,7 +192,7 @@ class ProcessDefinition {
                 if (parallelGatewayFinished) {
                     const taskIdAfterGateway = sequenceFlows[getOne(parallelGateways[nextTaskId].outgoings)].targetRef;
                     const progress = `${states._internals.parallelGateways[nextTaskId]} / ${parallelGateways[nextTaskId].incomings.length}`;
-                    console.log(`parallel gateway ${nextTaskId} finished (${progress}), triggerring next task ${taskIdAfterGateway}`);
+                    console.log(`parallel gateway ${nextTaskId} finished (${progress}), triggerring next task: ${taskIdAfterGateway}`);
                     return self._buildExecutionFlow(result, states, taskIdAfterGateway);
                 } else {
                     const progress = `${states._internals.parallelGateways[nextTaskId]} / ${parallelGateways[nextTaskId].incomings.length}`;
@@ -250,6 +250,12 @@ class ProcessRunStates {
 
     constructor() {
         this._internals = { parallelGateways: {} };
+    }
+
+    json() {
+        const jsonObj = _.clone(this);
+        delete jsonObj._internals;
+        return JSON.stringify(jsonObj);
     }
 
 }
