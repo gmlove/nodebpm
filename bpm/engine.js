@@ -26,26 +26,18 @@ class ProcessDefinition {
     constructor(processDef, funcs) {
         this.processDef = processDef;
         this.funcs = funcs;
-    }
 
-    static async from(xml, funcs) {
-        const processDef = await parser.parseStringPromise(xml);
-        console.log(JSON.stringify(processDef))
-        return new ProcessDefinition(processDef, funcs);
-    }
-
-    run(states) {
-        const process = getOne(this.processDef['bpmn2:definitions']['bpmn2:process']);
-        const startEvent = getOne(process['bpmn2:startEvent']);
-        const endEvents = process['bpmn2:endEvent']
+        const process = this.process = getOne(this.processDef['bpmn2:definitions']['bpmn2:process']);
+        this.startEvent = getOne(process['bpmn2:startEvent']);
+        this.endEvents = process['bpmn2:endEvent']
             .map(evt => [evt.$.id, evt['bpmn2:incoming']])
             .reduce((acc, cur) => { acc[cur[0]] = cur[1]; return acc; }, {});
-        const sequenceFlows = process['bpmn2:sequenceFlow'] ?
+        this.sequenceFlows = process['bpmn2:sequenceFlow'] ?
             process['bpmn2:sequenceFlow']
                 .map(flow => flow.$)
                 .reduce((acc, cur) => { acc[cur.id] = cur; return acc; }, {})
             : [];
-        const serviceTasks = process['bpmn2:serviceTask'] ?
+        this.serviceTasks = process['bpmn2:serviceTask'] ?
             process['bpmn2:serviceTask']
                 .reduce((acc, cur) => {
                     const task = acc[cur.$.id] = cur.$;
@@ -53,7 +45,7 @@ class ProcessDefinition {
                     task.outgoing = getOne(cur['bpmn2:outgoing']);
                     return acc;
                 }, {}) : [];
-        const exclusiveGateways = process['bpmn2:exclusiveGateway'] ?
+        this.exclusiveGateways = process['bpmn2:exclusiveGateway'] ?
             process['bpmn2:exclusiveGateway'].map(gw => {
                 return { id: gw.$.id, incoming: getOne(gw['bpmn2:incoming']), outgoings: gw['bpmn2:outgoing'] };
             }) : [];
@@ -62,16 +54,37 @@ class ProcessDefinition {
             _.keys(process),
             [
                 '$', 'bpmn2:documentation', 'bpmn2:startEvent', 'bpmn2:endEvent', 'bpmn2:sequenceFlow', 'bpmn2:serviceTask',
-                'bpmn2:exclusiveGateways'
+                'bpmn2:exclusiveGateway'
             ]);
         if (notSupportedElements.length != 0) {
             throw new Error(`elements not supported: ${notSupportedElements}`);
         }
+    }
 
-        let self = this;
-        let curTask = serviceTasks[sequenceFlows[getOne(startEvent['bpmn2:outgoing'])].targetRef];
+    static async from(xml, funcs) {
+        const processDef = await parser.parseStringPromise(xml);
+        console.log(JSON.stringify(processDef))
+        return new ProcessDefinition(processDef, funcs);
+    }
+
+    buildExecutionFlow(states) {
         const processRun = new ProcessRun(states);
         let result = processRun._getStartPromise();
+        result = this._buildExecutionFlow(result);
+        processRun._setResultPromise(result);
+        return processRun;
+    }
+
+    _buildExecutionFlow(result) {
+        const proccess = this.process,
+            startEvent = this.startEvent,
+            endEvents = this.endEvents,
+            sequenceFlows = this.sequenceFlows,
+            serviceTasks = this.serviceTasks,
+            exclusiveGateways = this.exclusiveGateways;
+
+        const self = this;
+        let curTask = serviceTasks[sequenceFlows[getOne(startEvent['bpmn2:outgoing'])].targetRef];
         let taskExecuted = {};
         while (true) {
             if (!(curTask.implementation in self.funcs)) {
@@ -102,15 +115,17 @@ class ProcessDefinition {
                 break;
             }
 
+            if (nextTaskId in exclusiveGateways) {
+                // TODO
+            }
+
             if (nextTaskId in taskExecuted) {
                 throw new Error(`circular flow found, task(${nextTaskId}) is already executed!`);
             }
 
             curTask = serviceTasks[nextTaskId];
         }
-
-        processRun._setResultPromise(result);
-        return processRun;
+        return result;
     }
 }
 
@@ -123,6 +138,10 @@ class ProcessRun {
             self.event.on('start', () => resolve(states));
         });
         this._resultPromise = null;
+    }
+
+    static from(processDef, states) {
+        return processDef.buildExecutionFlow(states);
     }
 
     _getStartPromise() {

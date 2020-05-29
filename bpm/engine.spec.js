@@ -1,4 +1,4 @@
-const { ProcessDefinition, ProcessRunStates } = require('./engine');
+const { ProcessDefinition, ProcessRun, ProcessRunStates } = require('./engine');
 const expect = require('chai').expect;
 
 describe('bpm', () => {
@@ -40,7 +40,7 @@ describe('bpm', () => {
             c: async (states) => states.result = states.a + states.b
         });
         const states = new ProcessRunStates();
-        const result = await pd.run(states)
+        const result = await ProcessRun.from(pd, states)
             .start()
             .then((states) => {
                 return states.result;
@@ -110,7 +110,8 @@ describe('bpm', () => {
             d: async (states) => states.result = states.a - states.b
         });
         const states = new ProcessRunStates();
-        const result = await pd.run(states)
+        const result = await ProcessRun.from(pd, states)
+            .start()
             .then((states) => {
                 return states.result;
             })
