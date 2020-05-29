@@ -75,7 +75,7 @@ describe('bpm', () => {
               <bpmn2:incoming>SequenceFlow_1ltlcxk</bpmn2:incoming>
               <bpmn2:outgoing>SequenceFlow_0s9rdg1</bpmn2:outgoing>
             </bpmn2:serviceTask>
-            <bpmn2:serviceTask id="ServiceTask_1s6d5g9" name="c1" implementation="c">
+            <bpmn2:serviceTask id="ServiceTask_1s6d5g9" name="c1" implementation="c1">
               <bpmn2:incoming>SequenceFlow_1nms7xk</bpmn2:incoming>
               <bpmn2:outgoing>SequenceFlow_05ukdnz</bpmn2:outgoing>
             </bpmn2:serviceTask>
@@ -106,8 +106,8 @@ describe('bpm', () => {
         const pd = await ProcessDefinition.from(processDef, {
             a: async (states) => states.a = 1,
             b: async (states) => states.b = 2,
-            c: async (states) => states.result = states.a + states.b,
-            d: async (states) => states.result = states.a - states.b
+            c1: async (states) => states.result = states.a + states.b,
+            c2: async (states) => states.result = states.a - states.b
         });
         const states = new ProcessRunStates();
         const result = await ProcessRun.from(pd, states)
