@@ -15,6 +15,14 @@ class Bp {
         this.content = content;
         this.script = script;
     }
+
+    setContent(content) {
+        this.content = content;
+    }
+
+    setScript(script) {
+        this.script = script;
+    }
 }
 
 class BpVersions {
@@ -41,6 +49,20 @@ class FileSystemStore {
     constructor(basePath) {
         this.basePath = basePath;
         this.scriptContext = vm.createContext({});
+        this.loadedBps = {};
+    }
+
+    async loadBp(id, version) {
+        const pbKey = `${id}-${version}`;
+        if (pbKey in this.loadedBps) {
+            return this.loadedBps(pbKey);
+        }
+        const bp = await fs.promises.readFile(this._bpPath(id, version), {encoding: 'utf-8'});
+        const script = await fs.promises.readFile(this._bpScriptPath(id, version), {encoding: 'utf-8'});
+
+        const funcs = this._evalScript(script);
+        this.loadedBps[pbKey] = await ProcessDefinition.from(bp, funcs);
+        return this.loadedBps[pbKey];
     }
 
     async _bps() {
@@ -66,6 +88,14 @@ class FileSystemStore {
         return new vm.Script(`(function() {return ${script};})()`).runInContext(this.scriptContext);
     }
 
+    _bpPath(id, version) {
+        return path.join(this.basePath, `${id}-${formatVersion(version)}.bpmn20.xml`);
+    }
+
+    _bpScriptPath(id, version) {
+        return path.join(this.basePath, `${id}-${formatVersion(version)}.script.js`);
+    }
+
     async getAll() {
         const bps = await this._bps();
         const bpMap = {};
@@ -79,6 +109,19 @@ class FileSystemStore {
 
         return Object.keys(bpMap).sort()
             .map(id => bpMap[id].withVersionSorted());
+    }
+
+    async get(id, version) {
+        let bps = await this._bps();
+        bps = bps.filter(bp => bp.id === id);
+        if (version) {
+            bps = bps.filter(bp => bp.version === parseInt(version))
+        }
+        for (const bp of bps) {
+            bp.setContent(await fs.promises.readFile(this._bpPath(bp.id, bp.version), {encoding: 'utf-8'}));
+            bp.setScript(await fs.promises.readFile(this._bpScriptPath(bp.id, bp.version), {encoding: 'utf-8'}));
+        }
+        return bps;
     }
 
     async update(xmlContent, script) {
@@ -97,8 +140,8 @@ class FileSystemStore {
         await ProcessDefinition.validate(xmlContent, funcs)
             .catch(err => Promise.reject(`process validation error: ${err.message}`));
 
-        await fs.promises.writeFile(path.join(this.basePath, `${id}-${formatVersion(currentVersion + 1)}.bpmn20.xml`), xmlContent);
-        await fs.promises.writeFile(path.join(this.basePath, `${id}-${formatVersion(currentVersion + 1)}.script.js`), script);
+        await fs.promises.writeFile(this._bpPath(id, currentVersion + 1), xmlContent);
+        await fs.promises.writeFile(this._bpScriptPath(id, currentVersion + 1), script);
         return new Bp(id, currentVersion + 1, xmlContent, script);
     }
 
@@ -115,8 +158,8 @@ class FileSystemStore {
         await ProcessDefinition.validate(xmlContent, funcs)
             .catch(err => Promise.reject(`process validation error: ${err.message}`));
 
-        await fs.promises.writeFile(path.join(this.basePath, `${id}-${formatVersion(1)}.bpmn20.xml`), xmlContent);
-        await fs.promises.writeFile(path.join(this.basePath, `${id}-${formatVersion(1)}.script.js`), script);
+        await fs.promises.writeFile(this._bpPath(id, 1), xmlContent);
+        await fs.promises.writeFile(this._bpScriptPath(id, 1), script);
         return new Bp(id, 1, xmlContent, script);
     }
 

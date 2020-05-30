@@ -83,7 +83,7 @@ class ProcessDefinition {
             Object.keys(this.funcs)
         )
         if (notDefinedServiceTasks.length > 0) {
-            throw new Error(`service task implementation ${notSupportedElements} not defined`);
+            throw new Error(`service task implementation ${notDefinedServiceTasks} not defined, defined are: ${Object.keys(this.funcs)}`);
         }
     }
 
@@ -183,8 +183,8 @@ class ProcessDefinition {
         return result.then(states => {
             try {
                 let taskResult = taskFunc(states);
-                if (!(taskResult instanceof Promise)) {
-                    throw new Error(`error found when call task ${task.name}(${task.id}): result of the function must be a Promise object`);
+                if (taskResult.toString() !== '[object Promise]') {
+                    throw new Error(`error found when call task ${task.name}(${task.id}): result of the function must be a Promise object, not ${taskResult}`);
                 }
                 return taskResult.then(() => {
                     logger.debug(`states after task ${task.name}(${task.id}): ${states.json()}`);
@@ -278,6 +278,8 @@ class ProcessRunStates {
     }
 
 }
+
+ProcessRunStates.KEY_INTERNAL = '_internals';
 
 
 module.exports = {

@@ -97,12 +97,12 @@ describe('bp', () => {
         expect(respJson.content.trim()).to.be.eq(content.trim());
 
         resp = await fetch(url('/'), { method: 'POST', body: JSON.stringify({ content: content, script: script }), headers: { 'Content-Type': 'application/json' } });
-        console.log(resp)
         expect(resp.status).to.be.eq(409);
 
         resp = await fetch(url('/'), { method: 'PUT', body: JSON.stringify({ content: content, script: script }), headers: { 'Content-Type': 'application/json' } });
-        console.log(resp)
+        expect(resp.status).to.be.eq(200);
         respJson = await resp.json();
+        console.log(respJson);
         expect(respJson.id).to.be.eq('some-bp');
         expect(respJson.version).to.be.eq(2);
 
@@ -139,26 +139,34 @@ describe('bp', () => {
         expect(resp.status).to.be.eq(200);
 
         resp = await fetch(url('/'));
+        expect(resp.status).to.be.eq(200);
         respJson = await resp.json();
+        console.log(respJson);
         expect(respJson).to.be.deep.eq([
             { id: 'another-bp', versions: [1] },
             { id: 'some-bp', versions: [1, 2] },
         ]);
 
         resp = await fetch(url('/some-bp'));
+        expect(resp.status).to.be.eq(200);
         respJson = await resp.json();
+        console.log(respJson);
         expect(respJson).to.be.deep.eq([
             { id: 'some-bp', version: 1, content: content, script: script },
             { id: 'some-bp', version: 2, content: content, script: script },
         ]);
 
         resp = await fetch(url('/some-bp/versions/1'));
+        expect(resp.status).to.be.eq(200);
         respJson = await resp.json();
+        console.log(respJson);
         expect(respJson).to.be.deep.eq({ id: 'some-bp', version: 1, content: content, script: script });
 
         resp = await fetch(url('/some-bp/versions/1/run'), { method: 'POST', body: JSON.stringify({ states: { a: 3 } }), headers: { 'Content-Type': 'application/json' } });
+        expect(resp.status).to.be.eq(200);
         respJson = await resp.json();
-        expect(respJson).to.be.deep.eq({ id: 'some-bp', version: 1, result: 4 });
+        console.log(respJson);
+        expect(respJson).to.be.deep.eq({ id: 'some-bp', version: 1, result: 3 });
     })
 
 })
