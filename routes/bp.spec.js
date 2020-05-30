@@ -53,41 +53,42 @@ describe('bp', () => {
         }
     });
 
+    const content = `<?xml version="1.0" encoding="UTF-8"?>
+    <bpmn2:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="sample-diagram" targetNamespace="http://bpmn.io/schema/bpmn" xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd">
+      <bpmn2:process id="process-255576e8-4c96-4911-b19b-1cdb33e6c421" name="some-bp" isExecutable="true">
+        <bpmn2:documentation />
+        <bpmn2:startEvent id="StartEvent_1">
+            <bpmn2:outgoing>SequenceFlow_1k98z8o</bpmn2:outgoing>
+        </bpmn2:startEvent>
+        <bpmn2:sequenceFlow id="SequenceFlow_1k98z8o" sourceRef="StartEvent_1" targetRef="ServiceTask_0em0nmt" />
+        <bpmn2:sequenceFlow id="SequenceFlow_1ltlcxk" sourceRef="ServiceTask_0em0nmt" targetRef="ServiceTask_0tt533q" />
+        <bpmn2:sequenceFlow id="SequenceFlow_04gcty3" sourceRef="ServiceTask_0tt533q" targetRef="ServiceTask_1s6d5g9" />
+        <bpmn2:endEvent id="EndEvent_0gn4cv2">
+            <bpmn2:incoming>SequenceFlow_1ytdgjc</bpmn2:incoming>
+        </bpmn2:endEvent>
+        <bpmn2:sequenceFlow id="SequenceFlow_1ytdgjc" sourceRef="ServiceTask_1s6d5g9" targetRef="EndEvent_0gn4cv2" />
+        <bpmn2:serviceTask id="ServiceTask_0em0nmt" name="a" implementation="a">
+            <bpmn2:incoming>SequenceFlow_1k98z8o</bpmn2:incoming>
+            <bpmn2:outgoing>SequenceFlow_1ltlcxk</bpmn2:outgoing>
+        </bpmn2:serviceTask>
+        <bpmn2:serviceTask id="ServiceTask_0tt533q" name="b" implementation="b">
+            <bpmn2:incoming>SequenceFlow_1ltlcxk</bpmn2:incoming>
+            <bpmn2:outgoing>SequenceFlow_04gcty3</bpmn2:outgoing>
+        </bpmn2:serviceTask>
+        <bpmn2:serviceTask id="ServiceTask_1s6d5g9" name="c" implementation="c">
+            <bpmn2:incoming>SequenceFlow_04gcty3</bpmn2:incoming>
+            <bpmn2:outgoing>SequenceFlow_1ytdgjc</bpmn2:outgoing>
+        </bpmn2:serviceTask>
+      </bpmn2:process>
+    </bpmn2:definitions>
+    `
+    const script = `{
+        a: async (states) => states.a = 1,
+        b: async (states) => states.b = 2,
+        c: async (states) => states.result = states.a + states.b
+    }`
+
     it('should create/update/list/get processes', async () => {
-        const content = `<?xml version="1.0" encoding="UTF-8"?>
-        <bpmn2:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="sample-diagram" targetNamespace="http://bpmn.io/schema/bpmn" xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd">
-          <bpmn2:process id="process-255576e8-4c96-4911-b19b-1cdb33e6c421" name="some-bp" isExecutable="true">
-            <bpmn2:documentation />
-            <bpmn2:startEvent id="StartEvent_1">
-                <bpmn2:outgoing>SequenceFlow_1k98z8o</bpmn2:outgoing>
-            </bpmn2:startEvent>
-            <bpmn2:sequenceFlow id="SequenceFlow_1k98z8o" sourceRef="StartEvent_1" targetRef="ServiceTask_0em0nmt" />
-            <bpmn2:sequenceFlow id="SequenceFlow_1ltlcxk" sourceRef="ServiceTask_0em0nmt" targetRef="ServiceTask_0tt533q" />
-            <bpmn2:sequenceFlow id="SequenceFlow_04gcty3" sourceRef="ServiceTask_0tt533q" targetRef="ServiceTask_1s6d5g9" />
-            <bpmn2:endEvent id="EndEvent_0gn4cv2">
-                <bpmn2:incoming>SequenceFlow_1ytdgjc</bpmn2:incoming>
-            </bpmn2:endEvent>
-            <bpmn2:sequenceFlow id="SequenceFlow_1ytdgjc" sourceRef="ServiceTask_1s6d5g9" targetRef="EndEvent_0gn4cv2" />
-            <bpmn2:serviceTask id="ServiceTask_0em0nmt" name="a" implementation="a">
-                <bpmn2:incoming>SequenceFlow_1k98z8o</bpmn2:incoming>
-                <bpmn2:outgoing>SequenceFlow_1ltlcxk</bpmn2:outgoing>
-            </bpmn2:serviceTask>
-            <bpmn2:serviceTask id="ServiceTask_0tt533q" name="b" implementation="b">
-                <bpmn2:incoming>SequenceFlow_1ltlcxk</bpmn2:incoming>
-                <bpmn2:outgoing>SequenceFlow_04gcty3</bpmn2:outgoing>
-            </bpmn2:serviceTask>
-            <bpmn2:serviceTask id="ServiceTask_1s6d5g9" name="c" implementation="c">
-                <bpmn2:incoming>SequenceFlow_04gcty3</bpmn2:incoming>
-                <bpmn2:outgoing>SequenceFlow_1ytdgjc</bpmn2:outgoing>
-            </bpmn2:serviceTask>
-          </bpmn2:process>
-        </bpmn2:definitions>
-        `
-        const script = `{
-            a: async (states) => states.a = 1,
-            b: async (states) => states.b = 2,
-            c: async (states) => states.result = states.a + states.b
-        }`
         let resp = await fetch(url('/'), { method: 'POST', body: JSON.stringify({ content: content, script: script }), headers: { 'Content-Type': 'application/json' } });
         let respJson = await resp.json();
         expect(resp.status).to.be.eq(200);
@@ -169,4 +170,11 @@ describe('bp', () => {
         expect(respJson).to.be.deep.eq({ id: 'some-bp', version: 1, result: 3 });
     })
 
+    it('should be able to test', async () => {
+        let resp = await fetch(url('/test'), { method: 'POST', body: JSON.stringify({ content: content, script: script }), headers: { 'Content-Type': 'application/json' } });
+        let respJson = await resp.json();
+        expect(resp.status).to.be.eq(200);
+        console.log(respJson);
+        expect(respJson).to.be.deep.eq({ result: 3 });
+    })
 })

@@ -27,6 +27,14 @@ router.param('version', function (req, res, next, version) {
   next()
 });
 
+router.post('/test', function (req, res, next) {
+  store.test(req.body.content, req.body.script, req.body.data)
+    .then(states => res.status(200).json({result: states.result}))
+    .catch((err) => {
+      logger.error('exception found: ', err);
+      res.status(500).json({message: err.message});
+    });
+});
 
 router.post('/:bp_id/versions/:version/run', function (req, res, next) {
   try {
@@ -34,11 +42,10 @@ router.post('/:bp_id/versions/:version/run', function (req, res, next) {
       .then(bp => {
         const states = new ProcessRunStates();
         if (req.body.data) {
-          for (const key of Object.keys(req.body.data)) {
-            if (key === ProcessRunStates.KEY_INTERNAL) {
-              return res.status(500).json({message: `key ${key} not allowed for initial states`});
-            }
-            states[key] = req.body.data[key];
+          try {
+            states.init(req.body.data);
+          } catch (err) {
+            return res.status(500).json({message: err.message});
           }
         }
 

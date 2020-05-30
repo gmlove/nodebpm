@@ -2,7 +2,7 @@ const fs = require('fs');
 const xml2js = require('xml2js');
 const path = require('path');
 const vm = require('vm');
-const { ProcessDefinition } = require('./engine');
+const { ProcessDefinition, ProcessRun, ProcessRunStates } = require('./engine');
 const { logger } = require('./logger');
 
 const parser = new xml2js.Parser();
@@ -161,6 +161,19 @@ class FileSystemStore {
         await fs.promises.writeFile(this._bpPath(id, 1), xmlContent);
         await fs.promises.writeFile(this._bpScriptPath(id, 1), script);
         return new Bp(id, 1, xmlContent, script);
+    }
+
+    async test(xmlContent, script, data) {
+        const id = await this._bpId(xmlContent);
+        const funcs = this._evalScript(script);
+
+        const states = new ProcessRunStates();
+        if (data) {
+            states.init(data);
+        }
+
+        const bp = await ProcessDefinition.from(xmlContent, funcs);
+        return await ProcessRun.from(bp, states).start();
     }
 
     async exists(xmlContent) {

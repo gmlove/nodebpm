@@ -271,6 +271,15 @@ class ProcessRunStates {
         this._internals = { parallelGateways: {}, executed: {} };
     }
 
+    init(data) {
+        for (const key of Object.keys(data)) {
+            if (key === ProcessRunStates.KEY_INTERNAL) {
+                throw new Error(`key ${key} not allowed for initial states`);
+            }
+            this[key] = data[key];
+        }
+    }
+
     json() {
         const jsonObj = _.clone(this);
         delete jsonObj._internals;
