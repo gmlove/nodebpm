@@ -55,7 +55,7 @@ class FileSystemStore {
     async loadBp(id, version) {
         const pbKey = `${id}-${version}`;
         if (pbKey in this.loadedBps) {
-            return this.loadedBps(pbKey);
+            return this.loadedBps[pbKey];
         }
         const bp = await fs.promises.readFile(this._bpPath(id, version), {encoding: 'utf-8'});
         const script = await fs.promises.readFile(this._bpScriptPath(id, version), {encoding: 'utf-8'});
