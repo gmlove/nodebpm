@@ -2,46 +2,9 @@ const xml2js = require('xml2js');
 const _ = require('lodash');
 const vm = require('vm');
 const EventEmitter = require('events');
+const { Logger, logger } = require('./logger');
 
 const parser = new xml2js.Parser();
-
-
-class Logger {
-
-    constructor(level) {
-        this.level = level;
-    }
-
-    setLevel(level) {
-        this.level = level;
-    }
-
-    debug(msg) {
-        if (this.level <= Logger.LEVEL_DEBUG) {
-            console.debug(`[${new Date().toISOString()}] [DEBUG]: ${msg}`);
-        }
-    }
-
-    info() {
-        if (this.level <= Logger.LEVEL_INFO) {
-            console.info(`[${new Date().toISOString()}] [INFO]: ${msg}`);
-        }
-    }
-
-    error() {
-        if (this.level <= Logger.LEVEL_ERROR) {
-            console.error(`[${new Date().toISOString()}] [ERROR]: ${msg}`);
-        }
-    }
-
-}
-
-Logger.LEVEL_DEBUG = 0;
-Logger.LEVEL_INFO = 1;
-Logger.LEVEL_ERROR = 2;
-
-
-const logger = new Logger(Logger.LEVEL_DEBUG);
 
 
 function assertArrayLen(arr, len) {
@@ -114,12 +77,25 @@ class ProcessDefinition {
         if (notSupportedElements.length != 0) {
             throw new Error(`elements not supported: ${notSupportedElements}`);
         }
+
+        const notDefinedServiceTasks = _.difference(
+            Object.keys(this.serviceTasks).map(serviceTaskId => this.serviceTasks[serviceTaskId].implementation),
+            Object.keys(this.funcs)
+        )
+        if (notDefinedServiceTasks.length > 0) {
+            throw new Error(`service task implementation ${notSupportedElements} not defined`);
+        }
     }
 
     static async from(xml, funcs) {
         const processDef = await parser.parseStringPromise(xml);
         // logger.debug(JSON.stringify(processDef))
         return new ProcessDefinition(processDef, funcs);
+    }
+
+    static async validate(xml, funcs) {
+        await ProcessDefinition.from(xml, funcs);
+        return true;
     }
 
     buildExecutionFlow(states) {
@@ -260,6 +236,7 @@ class ProcessRun {
         const self = this;
         this._startPromise = new Promise((resolve, reject) => {
             self.event.on('start', () => resolve(states));
+            self.event.on('cancel', () => reject('canceled'));
         });
         this._resultPromise = null;
     }
@@ -279,6 +256,11 @@ class ProcessRun {
     start() {
         this.event.emit('start');
         return this._resultPromise;
+    }
+
+    delete() {
+        this._startPromise.catch(err => logger.debug('canceled process promise'));
+        this.event.emit('cancel');
     }
 }
 

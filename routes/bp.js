@@ -1,6 +1,15 @@
 var express = require('express');
 var router = express.Router();
-const { ProcessDefinition, ProcessRun, ProcessRunStates, Logger, logger } = require('../bpm/engine');
+const { ProcessDefinition, ProcessRun, ProcessRunStates } = require('../bpm/engine');
+const FileSystemStore = require('../bpm/store').FileSystemStore;
+const { Logger, logger } = require('../bpm/logger');
+
+
+let store = new FileSystemStore('./data');
+function setStore(_store) {
+  store = _store;
+}
+
 
 const processDef = `
         <?xml version="1.0" encoding="UTF-8"?>
@@ -124,7 +133,7 @@ ProcessDefinition.from(processDef, {
 });
 logger.setLevel(Logger.LEVEL_INFO);
 
-router.get('/', function (req, res, next) {
+router.post('/:bpId/versions/:version/run', function (req, res, next) {
   if (!pd) {
     return res.status(500).send('process is still loading');
   }
@@ -145,4 +154,50 @@ router.get('/', function (req, res, next) {
   }
 });
 
-module.exports = router;
+
+router.route('/')
+  .all(function (req, res, next) {
+    // runs for all HTTP verbs first
+    // think of it as route specific middleware!
+    next()
+  })
+  .get(function (req, res, next) {
+    store.getAll()
+      .then(result => res.status(200).json(result))
+      .catch(err => {
+        logger.error('error when get process', err);
+        res.status(500).json({message: err.message})
+      });
+  })
+  .put(function (req, res, next) {
+    store.update(req.body.content, req.body.script)
+      .then(result => res.status(200).json(result))
+      .catch(err => {
+        logger.error('error when put process', err);
+        res.status(500).json({message: err.message})
+      });
+  })
+  .post(function (req, res, next) {
+    store.exists(req.body.content)
+      .then(exists => {
+        if (exists) {
+          return res.status(409).json({message: 'process exists'});
+        } else {
+          return store.add(req.body.content, req.body.script)
+            .then(result => res.status(200).json(result))
+            .catch(err => {
+              logger.error('error when create process', err);
+              res.status(500).json({message: err.message})
+            });
+        }
+      })
+      .catch(err => {
+        logger.error('error when create process', err);
+        res.status(500).json({message: err.message});
+      });
+  });
+
+module.exports = {
+  router: router,
+  setStore: setStore
+};
