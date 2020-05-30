@@ -6,6 +6,44 @@ const EventEmitter = require('events');
 const parser = new xml2js.Parser();
 
 
+class Logger {
+
+    constructor(level) {
+        this.level = level;
+    }
+
+    setLevel(level) {
+        this.level = level;
+    }
+
+    debug(msg) {
+        if (this.level <= Logger.LEVEL_DEBUG) {
+            console.debug(`[${new Date().toISOString()}] [DEBUG]: ${msg}`);
+        }
+    }
+
+    info() {
+        if (this.level <= Logger.LEVEL_INFO) {
+            console.info(`[${new Date().toISOString()}] [INFO]: ${msg}`);
+        }
+    }
+
+    error() {
+        if (this.level <= Logger.LEVEL_ERROR) {
+            console.error(`[${new Date().toISOString()}] [ERROR]: ${msg}`);
+        }
+    }
+
+}
+
+Logger.LEVEL_DEBUG = 0;
+Logger.LEVEL_INFO = 1;
+Logger.LEVEL_ERROR = 2;
+
+
+const logger = new Logger(Logger.LEVEL_DEBUG);
+
+
 function assertArrayLen(arr, len) {
     if (!arr || !(arr instanceof Array)) {
         throw new Error(`required an array, not ${JSON.stringify(arr)}`);
@@ -27,7 +65,6 @@ class ProcessDefinition {
         this.expressionEvaluator = new ExpressionEvaluator();
         this.processDef = processDef;
         this.funcs = funcs;
-        this.taskExecuted = {};
 
         const process = this.process = getOne(this.processDef['bpmn2:definitions']['bpmn2:process']);
         this.startEvent = getOne(process['bpmn2:startEvent']);
@@ -81,7 +118,7 @@ class ProcessDefinition {
 
     static async from(xml, funcs) {
         const processDef = await parser.parseStringPromise(xml);
-        // console.log(JSON.stringify(processDef))
+        // logger.debug(JSON.stringify(processDef))
         return new ProcessDefinition(processDef, funcs);
     }
 
@@ -102,12 +139,12 @@ class ProcessDefinition {
             exclusiveGateways = this.exclusiveGateways,
             parallelGateways = this.parallelGateways;
 
-        if (taskId && taskId in this.taskExecuted) {
+        if (taskId && taskId in states._internals.executed) {
             throw new Error(`circular flow found, task(${taskId}) is already executed!`);
         }
 
         taskId = taskId || sequenceFlows[getOne(startEvent['bpmn2:outgoing'])].targetRef;
-        this.taskExecuted[taskId] = true;
+        states._internals.executed[taskId] = true;
 
         if (taskId in exclusiveGateways) {
             return this._buildExecutionFlowForExclusiveGateway(result, states, exclusiveGateways[taskId]);
@@ -128,7 +165,7 @@ class ProcessDefinition {
             }
         });
         return result.then(states => {
-            console.log(`trigger parallel tasks: ${task.id}`)
+            logger.debug(`trigger parallel tasks: ${task.id}`)
             return Promise
                 .all(task.outgoings
                     .map(taskId => sequenceFlows[taskId].targetRef)
@@ -148,12 +185,12 @@ class ProcessDefinition {
             let nextFlowId = _.find(task.outgoings,
                 flowId => {
                     const conditionResult = self.expressionEvaluator.evaluate(states, sequenceFlows[flowId].condition);
-                    console.log(`execute condition '${sequenceFlows[flowId].condition}' under context ${states.json()}, got ${conditionResult}`);
+                    logger.debug(`execute condition '${sequenceFlows[flowId].condition}' under context ${states.json()}, got ${conditionResult}`);
                     return conditionResult;
                 });
             if (!nextFlowId) {
                 nextFlowId = _.last(task.outgoings);
-                console.log(`no next flow found for gateway ${task.id}, defaults to the last one ${nextFlowId}`);
+                logger.debug(`no next flow found for gateway ${task.id}, defaults to the last one ${nextFlowId}`);
             }
             const nextTaskId = sequenceFlows[nextFlowId].targetRef;
             return self._buildExecutionFlow(result, states, nextTaskId);
@@ -174,7 +211,7 @@ class ProcessDefinition {
                     throw new Error(`error found when call task ${task.name}(${task.id}): result of the function must be a Promise object`);
                 }
                 return taskResult.then(() => {
-                    console.log(`states after task ${task.name}(${task.id}): ${states.json()}`);
+                    logger.debug(`states after task ${task.name}(${task.id}): ${states.json()}`);
                     return states;
                 });
             } catch (err) {
@@ -182,7 +219,7 @@ class ProcessDefinition {
             }
         }).then(states => {
             let nextTaskId = sequenceFlows[task.outgoing].targetRef;
-            console.log(`trigger next task in serviceTask: ${nextTaskId}`)
+            logger.debug(`trigger next task in serviceTask: ${nextTaskId}`)
             if (nextTaskId in parallelGateways && parallelGateways[nextTaskId].incomings.length > 1) {
                 if (!(nextTaskId in states._internals.parallelGateways)) {
                     states._internals.parallelGateways[nextTaskId] = 0;
@@ -192,11 +229,11 @@ class ProcessDefinition {
                 if (parallelGatewayFinished) {
                     const taskIdAfterGateway = sequenceFlows[getOne(parallelGateways[nextTaskId].outgoings)].targetRef;
                     const progress = `${states._internals.parallelGateways[nextTaskId]} / ${parallelGateways[nextTaskId].incomings.length}`;
-                    console.log(`parallel gateway ${nextTaskId} finished (${progress}), triggerring next task: ${taskIdAfterGateway}`);
+                    logger.debug(`parallel gateway ${nextTaskId} finished (${progress}), triggerring next task: ${taskIdAfterGateway}`);
                     return self._buildExecutionFlow(result, states, taskIdAfterGateway);
                 } else {
                     const progress = `${states._internals.parallelGateways[nextTaskId]} / ${parallelGateways[nextTaskId].incomings.length}`;
-                    console.log(`parallel gateway ${nextTaskId} not finished yet (${progress}), will not trigger next task`);
+                    logger.debug(`parallel gateway ${nextTaskId} not finished yet (${progress}), will not trigger next task`);
                     return states;
                 }
             } else {
@@ -249,7 +286,7 @@ class ProcessRun {
 class ProcessRunStates {
 
     constructor() {
-        this._internals = { parallelGateways: {} };
+        this._internals = { parallelGateways: {}, executed: {} };
     }
 
     json() {
@@ -262,6 +299,8 @@ class ProcessRunStates {
 
 
 module.exports = {
+    logger: logger,
+    Logger: Logger,
     ProcessDefinition: ProcessDefinition,
     ProcessRun: ProcessRun,
     ProcessRunStates: ProcessRunStates
