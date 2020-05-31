@@ -1,3 +1,5 @@
 test/
 node_modules/
+public/codemirror-5.54.0/
+public/*.zip
 bpm/test.json
