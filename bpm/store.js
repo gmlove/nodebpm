@@ -48,7 +48,7 @@ class FileSystemStore {
 
     constructor(basePath) {
         this.basePath = basePath;
-        this.scriptContext = vm.createContext({});
+        this.scriptContext = vm.createContext({ fetch: require('node-fetch') });
         this.loadedBps = {};
     }
 
@@ -85,7 +85,8 @@ class FileSystemStore {
     }
 
     _evalScript(script) {
-        return new vm.Script(`(function() {return ${script};})()`).runInContext(this.scriptContext);
+        script = script.trim();
+        return new vm.Script(`(function() {${ script.substring(0, 1) === '{' ? 'return' : '' } ${script};})()`).runInContext(this.scriptContext);
     }
 
     _bpPath(id, version) {
