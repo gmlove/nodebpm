@@ -1,0 +1,59 @@
+# Nodebpm
+
+*高性能工作流驱动的动态流程执行引擎.*
+
+---
+
++ Workflow modeler: https://github.com/gmlove/activiti-modeling-app
++ Activiti: https://www.activiti.org/
++ 讨论和问题请反馈到 [issue tracker](https://github.com/gmlove/nodebpm/issues).
+
+---
+
+Nodebpm是一个用于支持任务图的调度引擎，它具有很好的性能。Nodebpm以微服务的形式发布，如无必要无需改动内部实现。
+
+由于工作流应用对于流程定义有相对完善的支持，可以用它来进行任务图的可视化设计。
+
+Nodebpm的任务图可以用任意一个支持`BPMN 2.0`协议的流程设计器进行设计。推荐配合[这里](https://github.com/gmlove/activiti-modeling-app)的`activiti modeler`流程设计器使用（在官方版本上进行了一定的修改，以便快速上手）。
+
+# 使用
+
+Heroku中已经部署了一个demo应用（感谢Heroku），访问[这里](https://infinite-dusk-45126.herokuapp.com/)，即可试用.
+
+对应的流程设计器部署在[这里](https://intense-caverns-26323.herokuapp.com/).
+
+上述流程设计器及Nodebpm相结合的典型使用流程如下：
+
+![使用](doc/usage.png)
+
+
+测试运行：
+
+```shell
+npm run test
+```
+
+启动服务：
+
+```shell
+npm start
+```
+
+打开[http://localhost:3000/](http://localhost:3000/)即可看到测试应用页面.
+
+和Nodebpm配合使用的流程设计器经过了一定的修改，这里的修改主要有：1. 移除了认证功能；2. 预置了一些样例数据。使用这个修改版本的功能，可以快速的尝试功能而无需启动activiti的其他相关模块。但请注意所有和持久化相关的功能都无法使用了，因为现在这个应用只是一个纯前端的应用。（如果点击某一个不支持的功能，而收到错误提示，请不要奇怪。）
+
+# API
+
+- POST `/`: 创建流程任务图
+- PUT `/`: 创建已存在流程任务图的新版本
+- GET `/`: 查询流程任务图
+- GET `/:process-id`: 根据id获取一个流程任务图
+- GET `/:process-id/versions/:version`: 根据id和版本号获取一个流程任务图
+- POST `/:process-id/versions/:version/run`: 运行一个流程任务图
+- POST `/test`: 测试某一个流程任务图
+
+关于API的详细使用方式可以参考[这里的测试用例](https://github.com/gmlove/nodebpm/blob/master/routes/bp.spec.js).
+
+# Licensing
+如无其他说明，源代码使用[Apache 2.0 License](./LICENSE)授权.

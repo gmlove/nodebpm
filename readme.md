@@ -14,7 +14,7 @@ Nodebpm is a full functional micro service to support high performance graph bas
 
 # Usage
 
-A demo has been deployed to heroku (Thanks heroku.com!), and you can try a online one at [here](https://infinite-dusk-45126.herokuapp.com/).
+A demo has been deployed to heroku (Thanks heroku.com!), and you can try a online one [here](https://infinite-dusk-45126.herokuapp.com/).
 
 For testing, run
 
@@ -30,6 +30,7 @@ npm start
 
 Then open [http://localhost:3000/](http://localhost:3000/), and have a try.
 
+A modified `activiti modeler` can be used to design the workflows, which could be found [here](https://github.com/gmlove/activiti-modeling-app). The main changes are: 1. auth removed; 2. pre-defined some mock data. With the modified version, you can start the modeler quickly without other activiti components. But please be noted that all the persistence related functionality are not supported since it is now a pure frontend app.
 
 # API
 
