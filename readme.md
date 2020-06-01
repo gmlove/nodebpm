@@ -16,6 +16,15 @@ Run a simple performance testing, and we could get around 1000 rps under just on
 
 ![performance](doc/perf.png)
 
+The tasks below are supported right now:
+
+- Start Event
+- End Event
+- Service Task
+- Parallel Gateway
+- Exclusive Gateway
+
+Most of other kind of tasks are not designed to be automatically executed, so no support right now.
 
 # Usage
 

@@ -20,6 +20,16 @@ Nodebpm的任务图可以用任意一个支持`BPMN 2.0`协议的流程设计器
 
 ![性能测试](doc/perf.png)
 
+当前支持的BPMN任务类型：
+
+- Start Event
+- End Event
+- Service Task
+- Parallel Gateway
+- Exclusive Gateway
+
+其他多数任务类型由于不适用于自动化运行的场景，暂时不支持。
+
 # 使用
 
 Heroku中已经部署了一个demo应用（感谢Heroku），访问[这里](https://node-bpm.herokuapp.com/)，即可试用.
