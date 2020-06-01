@@ -14,7 +14,9 @@ Nodebpm is a full functional micro service to support high performance graph bas
 
 # Usage
 
-A demo has been deployed to heroku (Thanks heroku.com!), and you can try a online one [here](https://infinite-dusk-45126.herokuapp.com/).
+A demo has been deployed to heroku (Thanks heroku.com!), and you can try a online one [here](https://node-bpm.herokuapp.com/).
+
+The related `activiti modeler` has been deployed [here](https://node-bpm-modeler.herokuapp.com/).
 
 For testing, run
 
