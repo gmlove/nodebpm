@@ -16,6 +16,10 @@ Nodebpm是一个用于支持任务图的调度引擎，它具有很好的性能�
 
 Nodebpm的任务图可以用任意一个支持`BPMN 2.0`协议的流程设计器进行设计。推荐配合[这里](https://github.com/gmlove/activiti-modeling-app)的`activiti modeler`流程设计器使用（在官方版本上进行了一定的修改，以便快速上手）。
 
+运行一个简单的测试，可以看到Nodebpm在单进程node下可以达到1000左右的rps。
+
+![性能测试](doc/perf.png)
+
 # 使用
 
 Heroku中已经部署了一个demo应用（感谢Heroku），访问[这里](https://node-bpm.herokuapp.com/)，即可试用.

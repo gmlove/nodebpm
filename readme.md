@@ -12,6 +12,11 @@
 
 Nodebpm is a full functional micro service to support high performance graph based task scheduling. The task graph is defined by a bpmn version 2 protocol and could be designed by [activiti modeler](https://github.com/gmlove/activiti-modeling-app).
 
+Run a simple performance testing, and we could get around 1000 rps under just one node process.
+
+![performance](doc/perf.png)
+
+
 # Usage
 
 A demo has been deployed to heroku (Thanks heroku.com!), and you can try a online one [here](https://node-bpm.herokuapp.com/).
