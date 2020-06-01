@@ -36,13 +36,13 @@ A modified `activiti modeler` can be used to design the workflows, which could b
 
 # API
 
-- POST `/`: create a process.
-- PUT `/`: create a new version for an existing process.
-- GET `/`: query the existing processes.
-- GET `/:process-id`: get the existing process by id.
-- GET `/:process-id/versions/:version`: get the existing process by id and version.
-- POST `/:process-id/versions/:version/run`: run a process.
-- POST `/test`: run a test against some new process.
+- POST `/bp/`: create a process.
+- PUT `/bp/`: create a new version for an existing process.
+- GET `/bp/`: query the existing processes.
+- GET `/bp/:process-id`: get the existing process by id.
+- GET `/bp/:process-id/versions/:version`: get the existing process by id and version.
+- POST `/bp/:process-id/versions/:version/run`: run a process.
+- POST `/bp/test`: run a test against some new process.
 
 Detailed usage about these APIs could be found in the [test cases](https://github.com/gmlove/nodebpm/blob/master/routes/bp.spec.js).
 

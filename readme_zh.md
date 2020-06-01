@@ -45,13 +45,13 @@ npm start
 
 # API
 
-- POST `/`: 创建流程任务图
-- PUT `/`: 创建已存在流程任务图的新版本
-- GET `/`: 查询流程任务图
-- GET `/:process-id`: 根据id获取一个流程任务图
-- GET `/:process-id/versions/:version`: 根据id和版本号获取一个流程任务图
-- POST `/:process-id/versions/:version/run`: 运行一个流程任务图
-- POST `/test`: 测试某一个流程任务图
+- POST `/bp/`: 创建流程任务图
+- PUT `/bp/`: 创建已存在流程任务图的新版本
+- GET `/bp/`: 查询流程任务图
+- GET `/bp/:process-id`: 根据id获取一个流程任务图
+- GET `/bp/:process-id/versions/:version`: 根据id和版本号获取一个流程任务图
+- POST `/bp/:process-id/versions/:version/run`: 运行一个流程任务图
+- POST `/bp/test`: 测试某一个流程任务图
 
 关于API的详细使用方式可以参考[这里的测试用例](https://github.com/gmlove/nodebpm/blob/master/routes/bp.spec.js).
 
