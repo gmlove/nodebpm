@@ -1,10 +1,28 @@
 {
   "name": "nodebpm",
-  "version": "0.0.0",
-  "private": true,
-  "scripts": {
-    "start": "node ./bin/www"
+  "version": "1.0.0",
+  "description": "A sample Node.js app using Express 4",
+  "author": "Bright Liao",
+  "private": false,
+  "engines": {
+    "node": "12.x"
   },
+  "scripts": {
+    "start": "node ./bin/www",
+    "test": "mocha bpm/*.spec.js routes/*.spec.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/heroku/node-js-getting-started"
+  },
+  "keywords": [
+    "node",
+    "bpmn2",
+    "Business Process",
+    "automation",
+    "express"
+  ],
+  "license": "See license in LICENSE file.",
   "dependencies": {
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
