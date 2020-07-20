@@ -29,7 +29,7 @@
     "express": "~4.16.1",
     "http-errors": "~1.6.3",
     "jade": "~1.11.0",
-    "lodash": "^4.17.15",
+    "lodash": "^4.17.19",
     "morgan": "~1.9.1",
     "xml2js": "^0.4.23",
     "node-fetch": "^2.6.0"
